@@ -160,6 +160,27 @@ html, body {
   animation: flicker 0.6s steps(2) forwards;
 }
 
+/* ── Sparks during flicker ── */
+.spark {
+  position: absolute;
+  width: 3px; height: 3px;
+  background: #fff;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 10;
+  box-shadow: 0 0 4px #fff, 0 0 8px var(--pink), 0 0 12px var(--pink-glow);
+  opacity: 0;
+}
+.spark.go {
+  animation: sparkFly var(--dur, 0.4s) ease-out forwards;
+}
+@keyframes sparkFly {
+  0%   { opacity: 1; transform: translate(0, 0) scale(1); }
+  30%  { opacity: 0.9; }
+  70%  { opacity: 0.4; }
+  100% { opacity: 0; transform: translate(var(--dx, 20px), var(--dy, 30px)) scale(0.2); }
+}
+
 /* ── Dust particles ── */
 .dust {
   position: absolute;
@@ -218,53 +239,185 @@ html, body {
 .lamp-cord {
   position: absolute;
   top: 0; left: 50%;
-  width: 2px; height: 40px;
+  width: 2px; height: 30px;
   background: #444;
   transform: translateX(-50%);
 }
+/* 3D Cone lamp — built from layered ellipses + gradient shading */
+.lamp-shade {
+  position: absolute;
+  top: 20px; left: 50%;
+  width: 220px; height: 90px;
+  transform: translateX(-50%);
+  perspective: 500px;
+}
+/* Main cone body — trapezoid with curved shading for 3D depth */
 .lamp-body {
   position: absolute;
-  top: 38px; left: 50%;
-  width: 140px; height: 70px;
-  transform: translateX(-50%);
-  background: linear-gradient(180deg, #28321b, #3a462a 40%, #4a5639, #354026);
-  border-radius: 100% 100% 45% 45% / 100% 100% 30% 30%;
-  box-shadow: inset 0 -15px 30px rgba(0,0,0,0.4), 0 4px 12px rgba(0,0,0,0.3);
+  inset: 0;
+  background: linear-gradient(90deg,
+    #1e2614 0%,
+    #2a341c 15%,
+    #3a462a 30%,
+    #4f5e3a 45%,
+    #5a6b42 50%,
+    #4a5639 60%,
+    #3a462a 75%,
+    #2a341c 90%,
+    #1e2614 100%
+  );
+  clip-path: polygon(48% 0%, 52% 0%, 100% 100%, 0% 100%);
 }
+/* Specular highlight — left of center for 3D lighting */
+.lamp-body::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    ellipse 25% 80% at 40% 50%,
+    rgba(255, 255, 255, 0.1) 0%,
+    rgba(255, 255, 255, 0.04) 40%,
+    transparent 70%
+  );
+  clip-path: polygon(48% 0%, 52% 0%, 100% 100%, 0% 100%);
+}
+/* Ambient occlusion — darken the edges more */
+.lamp-body::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg,
+    rgba(0,0,0,0.4) 0%,
+    transparent 20%,
+    transparent 80%,
+    rgba(0,0,0,0.35) 100%
+  );
+  clip-path: polygon(48% 0%, 52% 0%, 100% 100%, 0% 100%);
+}
+/* Bottom rim — ellipse for 3D perspective of cone opening */
 .lamp-rim {
   position: absolute;
-  top: 95px; left: 50%;
-  width: 160px; height: 12px;
+  top: 106px; left: 50%;
+  width: 224px; height: 18px;
   transform: translateX(-50%);
-  background: linear-gradient(180deg, #5a6644, #4a5639);
-  border-radius: 0 0 50% 50% / 0 0 100% 100%;
+  background: linear-gradient(180deg, #4a5639 0%, #3a462a 50%, #2a341c 100%);
+  border-radius: 50%;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.4);
 }
+/* Inner rim visible from below — pink-lit from bulb glow */
+.lamp-rim::before {
+  content: '';
+  position: absolute;
+  top: 3px; left: 8px; right: 8px; bottom: 1px;
+  background: radial-gradient(ellipse,
+    rgba(255, 143, 218, 0.12) 0%,
+    rgba(40, 30, 20, 0.9) 40%,
+    #1a1f12 100%
+  );
+  border-radius: 50%;
+}
+/* Rim highlight — subtle light catch on the edge */
+.lamp-rim::after {
+  content: '';
+  position: absolute;
+  top: 0; left: 15%; right: 40%;
+  height: 4px;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.08), transparent);
+  border-radius: 50%;
+}
+/* Bulb — brighter, bigger glow */
 .lamp-bulb {
   position: absolute;
-  top: 100px; left: 50%;
+  top: 110px; left: 50%;
   width: 14px; height: 14px;
   transform: translateX(-50%);
-  background: radial-gradient(circle, #fff 0%, var(--pink) 50%, transparent 100%);
+  background: radial-gradient(circle, #fff 0%, #ffd4f0 30%, var(--pink) 60%, transparent 100%);
   border-radius: 50%;
-  box-shadow: 0 0 20px var(--pink), 0 0 60px var(--pink-glow);
+  box-shadow:
+    0 0 12px #fff,
+    0 0 25px var(--pink),
+    0 0 50px var(--pink-glow),
+    0 0 90px rgba(255, 143, 218, 0.2);
+}
+/* Hot glow halo right under the rim — the bright source point */
+.lamp-shade::after {
+  content: '';
+  position: absolute;
+  bottom: -8px; left: 50%;
+  width: 140px; height: 24px;
+  transform: translateX(-50%);
+  background: radial-gradient(ellipse at 50% 30%,
+    rgba(255, 220, 245, 0.25) 0%,
+    rgba(255, 143, 218, 0.15) 30%,
+    rgba(255, 143, 218, 0.05) 60%,
+    transparent 100%
+  );
+  pointer-events: none;
 }
 
-/* The pink light cone */
+/* The pink light cone — layered for 3D depth */
 .light-cone {
   position: absolute;
-  top: 105px; left: 50%;
-  width: 100vw; height: calc(100vh - 105px);
+  top: 112px; left: 50%;
+  width: 100vw; height: calc(100vh - 112px);
   transform: translateX(-50%);
-  background: linear-gradient(
-    180deg,
-    rgba(255, 143, 218, 0.55) 0%,
-    rgba(252, 131, 211, 0.38) 15%,
-    rgba(248, 119, 205, 0.25) 35%,
-    rgba(244, 113, 200, 0.15) 55%,
-    rgba(239, 108, 195, 0.06) 75%,
-    rgba(0, 0, 0, 0) 100%
-  );
+  /* Main beam — bright center fading to edges */
+  background:
+    /* Hot center column */
+    linear-gradient(180deg,
+      rgba(255, 220, 245, 0.5) 0%,
+      rgba(255, 180, 230, 0.3) 8%,
+      rgba(255, 143, 218, 0.15) 25%,
+      rgba(255, 143, 218, 0.05) 50%,
+      transparent 80%
+    ),
+    /* Wider ambient fill */
+    linear-gradient(180deg,
+      rgba(255, 143, 218, 0.35) 0%,
+      rgba(248, 119, 205, 0.2) 20%,
+      rgba(244, 113, 200, 0.1) 40%,
+      rgba(239, 108, 195, 0.04) 65%,
+      transparent 100%
+    );
   clip-path: polygon(47% 0%, 53% 0%, 82% 100%, 18% 100%);
+}
+/* Bright edge lines — visible cone boundary */
+.light-cone::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    /* Left edge highlight */
+    linear-gradient(180deg,
+      rgba(255, 200, 240, 0.3) 0%,
+      rgba(255, 143, 218, 0.08) 40%,
+      transparent 70%
+    ),
+    /* Right edge highlight */
+    linear-gradient(180deg,
+      rgba(255, 200, 240, 0.3) 0%,
+      rgba(255, 143, 218, 0.08) 40%,
+      transparent 70%
+    );
+  background-size: 3px 100%, 3px 100%;
+  background-position: 0% 0%, 100% 0%;
+  background-repeat: no-repeat;
+  clip-path: polygon(47% 0%, 53% 0%, 82% 100%, 18% 100%);
+  pointer-events: none;
+}
+/* Soft volumetric bloom around the source */
+.light-cone::after {
+  content: '';
+  position: absolute;
+  top: -8px; left: 50%;
+  width: 200px; height: 50px;
+  transform: translateX(-50%);
+  background: radial-gradient(ellipse at 50% 40%,
+    rgba(255, 220, 245, 0.2) 0%,
+    rgba(255, 143, 218, 0.08) 40%,
+    transparent 70%
+  );
+  pointer-events: none;
 }
 
 /* Floor glow where light hits — sways with lamp */
@@ -981,6 +1134,101 @@ textarea.ct-input { resize: vertical; min-height: 70px; }
 .monster-hand.grabbing .mh-f4 { transform: rotate(10deg) rotateX(40deg) scaleY(0.75); }
 .monster-hand.grabbing .mh-thumb { transform: rotate(-10deg); }
 .mh-finger, .mh-thumb { transition: transform 0.3s ease; }
+
+/* ── LAMP BREAK EASTER EGG ── */
+.lamp-break-blackout {
+  position: fixed; inset: 0;
+  background: #000;
+  z-index: 8000;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s ease;
+}
+.lamp-break-blackout.on { opacity: 1; }
+
+/* glass shards */
+.lamp-shard {
+  position: absolute;
+  pointer-events: none;
+  z-index: 8500;
+  opacity: 0;
+}
+@keyframes shardFall {
+  0%   { opacity: 1; transform: translate(0, 0) rotate(0deg); }
+  20%  { opacity: 0.9; }
+  100% { opacity: 0; transform: translate(var(--sx), var(--sy)) rotate(var(--sr)); }
+}
+
+/* lamp break invert mode */
+html.inverted body {
+  filter: invert(1) hue-rotate(180deg);
+  transform: rotate(180deg);
+  transform-origin: 50% 50%;
+}
+
+/* ── FOLDER BURN EASTER EGG ── */
+.ico.dragging {
+  z-index: 9999;
+  opacity: 0.8;
+}
+.ico.burning {
+  pointer-events: none;
+  z-index: 9999;
+  animation: icoDisintegrate 0.8s ease 0.6s forwards;
+}
+.ico.burning .folder {
+  animation: folderBurn 1s ease forwards;
+}
+.ico.burning .ico-l {
+  animation: labelBurn 0.6s ease 0.2s forwards;
+}
+@keyframes folderBurn {
+  0%   { filter: brightness(1); transform: scale(1); }
+  15%  { filter: brightness(3) saturate(3); transform: scale(1.15); }
+  30%  { filter: brightness(5) saturate(1) hue-rotate(-30deg); transform: scale(1.1); }
+  50%  { filter: brightness(4) saturate(0.3); transform: scale(0.7); opacity: 0.6; }
+  70%  { filter: brightness(2) saturate(0); transform: scale(0.3); opacity: 0.2; }
+  100% { filter: brightness(0); transform: scale(0); opacity: 0; }
+}
+@keyframes labelBurn {
+  0%   { opacity: 1; }
+  100% { opacity: 0; filter: blur(4px); }
+}
+@keyframes icoDisintegrate {
+  to { opacity: 0; visibility: hidden; }
+}
+
+/* burn ember particles */
+.burn-ember {
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 10000;
+  opacity: 0;
+}
+@keyframes emberRise {
+  0%   { opacity: 1; transform: translate(0, 0) scale(1); }
+  30%  { opacity: 0.9; }
+  100% { opacity: 0; transform: translate(var(--ex), var(--ey)) scale(0); }
+}
+
+/* flame burst overlay */
+.burn-flame {
+  position: absolute;
+  pointer-events: none;
+  z-index: 9998;
+  border-radius: 50%;
+  animation: flameBurst var(--dur) ease-out forwards;
+  mix-blend-mode: screen;
+}
+@keyframes flameBurst {
+  0%   { transform: scale(0); opacity: 0.9; }
+  30%  { transform: scale(1); opacity: 0.7; }
+  60%  { transform: scale(1.3); opacity: 0.3; }
+  100% { transform: scale(1.6); opacity: 0; }
+}
+
+
 </style>
 </head>
 <body>
@@ -997,7 +1245,9 @@ textarea.ct-input { resize: vertical; min-height: 70px; }
   <div class="lamp-wrap" id="lamp">
     <div class="lamp-hit" id="lamp-hit"></div>
     <div class="lamp-cord"></div>
-    <div class="lamp-body"></div>
+    <div class="lamp-shade">
+      <div class="lamp-body"></div>
+    </div>
     <div class="lamp-rim"></div>
     <div class="lamp-bulb"></div>
     <div class="light-cone"></div>
@@ -1084,6 +1334,8 @@ textarea.ct-input { resize: vertical; min-height: 70px; }
   <div class="abyss-text">you were looking for us...<br>or were we looking for you?</div>
 </div>
 
+<div class="lamp-break-blackout" id="lamp-blackout"></div>
+
 <div id="ctx">
   <div class="ctx-i" data-a="about">About PinkLight</div>
   <div class="ctx-d"></div>
@@ -1102,8 +1354,8 @@ const SFX = (() => {
   let muted = false;
 
   function init() {
-    if (ctx) return;
-    ctx = new (window.AudioContext || window.webkitAudioContext)();
+    if (!ctx) ctx = new (window.AudioContext || window.webkitAudioContext)();
+    if (ctx.state === 'suspended') ctx.resume();
   }
 
   // utility: create noise buffer
@@ -1314,10 +1566,156 @@ const SFX = (() => {
     osc2.start(t); osc2.stop(t + 2);
   }
 
+  // Burn sizzle — crackling fire + hiss
+  function burnSizzle() {
+    if (!ctx || muted) return;
+    const t = ctx.currentTime;
+    // crackling noise burst
+    const noise = ctx.createBufferSource();
+    noise.buffer = noiseBuffer(1.2, 'white');
+    const bp = ctx.createBiquadFilter();
+    bp.type = 'bandpass'; bp.frequency.value = 3000; bp.Q.value = 0.8;
+    const gain = ctx.createGain();
+    gain.gain.setValueAtTime(0, t);
+    gain.gain.linearRampToValueAtTime(0.08, t + 0.05);
+    gain.gain.linearRampToValueAtTime(0.05, t + 0.3);
+    gain.gain.linearRampToValueAtTime(0.02, t + 0.7);
+    gain.gain.linearRampToValueAtTime(0, t + 1.2);
+    noise.connect(bp).connect(gain).connect(ctx.destination);
+    noise.start(t); noise.stop(t + 1.3);
+    // low whoosh
+    const osc = ctx.createOscillator();
+    osc.type = 'sine'; osc.frequency.value = 80;
+    osc.frequency.exponentialRampToValueAtTime(40, t + 0.8);
+    const og = ctx.createGain();
+    og.gain.setValueAtTime(0, t);
+    og.gain.linearRampToValueAtTime(0.06, t + 0.1);
+    og.gain.linearRampToValueAtTime(0, t + 0.9);
+    osc.connect(og).connect(ctx.destination);
+    osc.start(t); osc.stop(t + 1);
+  }
+
   function toggle() { muted = !muted; if (muted) stopAmbient(); else startAmbient(); return !muted; }
   function isMuted() { return muted; }
 
-  return { init, startAmbient, stopAmbient, flickerBuzz, folderOpen, windowClose, handScrape, bootHum, toggle, isMuted };
+  // Glass break — sharp crack + shatter
+  function glassBreak() {
+    if (!ctx || muted) return;
+    const t = ctx.currentTime;
+    // sharp crack
+    const crack = ctx.createBufferSource();
+    crack.buffer = noiseBuffer(0.08, 'white');
+    const hp = ctx.createBiquadFilter();
+    hp.type = 'highpass'; hp.frequency.value = 3000;
+    const cg = ctx.createGain();
+    cg.gain.setValueAtTime(0.15, t);
+    cg.gain.exponentialRampToValueAtTime(0.001, t + 0.08);
+    crack.connect(hp).connect(cg).connect(ctx.destination);
+    crack.start(t); crack.stop(t + 0.1);
+    // shatter tinkle
+    const tinkle = ctx.createBufferSource();
+    tinkle.buffer = noiseBuffer(0.5, 'white');
+    const bp = ctx.createBiquadFilter();
+    bp.type = 'bandpass'; bp.frequency.value = 6000; bp.Q.value = 2;
+    const tg = ctx.createGain();
+    tg.gain.setValueAtTime(0, t);
+    tg.gain.linearRampToValueAtTime(0.06, t + 0.05);
+    tg.gain.linearRampToValueAtTime(0.03, t + 0.15);
+    tg.gain.linearRampToValueAtTime(0, t + 0.5);
+    tinkle.connect(bp).connect(tg).connect(ctx.destination);
+    tinkle.start(t + 0.02); tinkle.stop(t + 0.55);
+    // resonant ring
+    const ring = ctx.createOscillator();
+    ring.type = 'sine'; ring.frequency.value = 2200;
+    const rg = ctx.createGain();
+    rg.gain.setValueAtTime(0.04, t);
+    rg.gain.exponentialRampToValueAtTime(0.001, t + 0.6);
+    ring.connect(rg).connect(ctx.destination);
+    ring.start(t); ring.stop(t + 0.7);
+  }
+
+  // Power-back-on hum — rising tone when lamp restores
+  function powerOn() {
+    if (!ctx || muted) return;
+    const t = ctx.currentTime;
+    const osc = ctx.createOscillator();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(40, t);
+    osc.frequency.exponentialRampToValueAtTime(120, t + 0.8);
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0, t);
+    g.gain.linearRampToValueAtTime(0.05, t + 0.2);
+    g.gain.linearRampToValueAtTime(0, t + 1);
+    osc.connect(g).connect(ctx.destination);
+    osc.start(t); osc.stop(t + 1.1);
+  }
+
+  // Creepy laugh — synthesized "ha ha ha" using modulated tones
+  let laughInterval = null;
+  function startCreepyLaugh() {
+    if (!ctx || muted) return;
+    function singleLaugh() {
+      if (!ctx || muted) return;
+      const t = ctx.currentTime;
+      // each "ha" is a short vowel-like tone
+      const haCount = 3 + Math.floor(Math.random() * 4); // 3-6 ha's
+      const speed = 0.12 + Math.random() * 0.08; // time per ha
+      // base pitch — vary for creepiness
+      const basePitch = 180 + Math.random() * 200;
+      const isHigh = Math.random() > 0.5;
+
+      for (let i = 0; i < haCount; i++) {
+        const start = t + i * speed;
+        // fundamental
+        const osc = ctx.createOscillator();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(isHigh ? basePitch * 2 : basePitch, start);
+        osc.frequency.exponentialRampToValueAtTime((isHigh ? basePitch * 2 : basePitch) * 0.85, start + speed * 0.8);
+
+        // formant filter — vowel-like resonance
+        const formant = ctx.createBiquadFilter();
+        formant.type = 'bandpass';
+        formant.frequency.value = 700 + Math.random() * 400;
+        formant.Q.value = 3 + Math.random() * 4;
+
+        // second formant
+        const formant2 = ctx.createBiquadFilter();
+        formant2.type = 'bandpass';
+        formant2.frequency.value = 1200 + Math.random() * 600;
+        formant2.Q.value = 2;
+
+        // amplitude envelope — sharp attack, quick decay per syllable
+        const gain = ctx.createGain();
+        gain.gain.setValueAtTime(0, start);
+        gain.gain.linearRampToValueAtTime(0.04 + Math.random() * 0.02, start + 0.015);
+        gain.gain.linearRampToValueAtTime(0.03, start + speed * 0.3);
+        gain.gain.exponentialRampToValueAtTime(0.001, start + speed * 0.85);
+
+        // slight vibrato for unhinged feel
+        const vib = ctx.createOscillator();
+        vib.frequency.value = 5 + Math.random() * 8;
+        const vibGain = ctx.createGain();
+        vibGain.gain.value = 8 + Math.random() * 12;
+        vib.connect(vibGain).connect(osc.frequency);
+        vib.start(start); vib.stop(start + speed);
+
+        osc.connect(formant).connect(gain).connect(ctx.destination);
+        osc.connect(formant2).connect(gain);
+        osc.start(start); osc.stop(start + speed);
+      }
+    }
+    // play laugh bursts at random intervals
+    singleLaugh();
+    laughInterval = setInterval(() => {
+      if (Math.random() > 0.3) singleLaugh();
+    }, 800 + Math.random() * 1200);
+  }
+
+  function stopCreepyLaugh() {
+    if (laughInterval) { clearInterval(laughInterval); laughInterval = null; }
+  }
+
+  return { init, startAmbient, stopAmbient, flickerBuzz, folderOpen, windowClose, handScrape, bootHum, burnSizzle, glassBreak, powerOn, startCreepyLaugh, stopCreepyLaugh, toggle, isMuted };
 })();
 
 // init audio on first user interaction (browser requirement)
@@ -1365,6 +1763,7 @@ const wCfg = {
   about:    { t:'About',    ico:'&#128193;', w:420, h:360, x:380, y:70 },
   playlist: { t:'Playlist', ico:'&#128193;', w:360, h:420, x:460, y:50 },
   contact:  { t:'Contact',  ico:'&#128193;', w:380, h:400, x:340, y:65 },
+  secret:   { t:'???',      ico:'&#128274;', w:440, h:440, x:280, y:45 },
 };
 
 function content(type, d) {
@@ -1380,6 +1779,7 @@ function content(type, d) {
     `<div class="pl-track"><div class="pl-num">${String(i+1).padStart(2,'0')}</div><div><div class="pl-song">${t.s}</div><div class="pl-artist">${t.a}</div></div></div>`
   ).join('')}`;
   if (type === 'contact') return `<div class="ab"><h3>GET IN TOUCH</h3><p>Want to play at a Pink Light event? Have an idea? Just want to say what's up?</p></div><form class="ct-form" onsubmit="event.preventDefault()"><div><label class="ct-label">NAME</label><input class="ct-input" placeholder="your name"></div><div><label class="ct-label">EMAIL</label><input class="ct-input" type="email" placeholder="you@email.com"></div><div><label class="ct-label">MESSAGE</label><textarea class="ct-input" placeholder="what's on your mind?"></textarea></div><button class="ct-btn" type="submit">SEND IT</button></form><div class="ct-links"><a href="#">Instagram</a><a href="#">TikTok</a><a href="#">Spotify</a><a href="#">Email</a></div>`;
+  if (type === 'secret') return `<div class="ab"><h3>&#128274; YOU FOUND THE BACK ROOM</h3><p>Well, well. You typed the magic words. Not many people make it here.</p><p>This is the part of the clubhouse that doesn't have a door — you have to know it exists. Consider yourself initiated.</p><hr class="ab-div"><h3>&#127911; THE VAULT — UNRELEASED PICKS</h3><p style="font-size:10px;color:var(--text-dim);font-style:italic;">Tracks that didn't make the public playlist. Too raw, too weird, too personal. Perfect.</p></div><div class="pl-track"><div class="pl-num">??</div><div><div class="pl-song">4 AM Demo (voice memo)</div><div class="pl-artist">Unknown — found on a barstool</div></div></div><div class="pl-track"><div class="pl-num">??</div><div><div class="pl-song">Pink Light Theme (unreleased)</div><div class="pl-artist">The Collective</div></div></div><div class="pl-track"><div class="pl-num">??</div><div><div class="pl-song">Basement Tape #7</div><div class="pl-artist">Slow Honey & Cash Ambrose</div></div></div><div class="pl-track"><div class="pl-num">??</div><div><div class="pl-song">Last Call (live at The 5 Spot)</div><div class="pl-artist">Dove & the Damage</div></div></div><div class="pl-track"><div class="pl-num">??</div><div><div class="pl-song">Neon Baptism</div><div class="pl-artist">Juno Park</div></div></div><hr class="ab-div"><div class="ab"><h3>&#128172; A NOTE FROM US</h3><p>If you're reading this, you're the kind of person Pink Light was built for — curious, a little obsessive, probably up too late. We see you.</p><p>Stay weird. Stay kind. Keep making things that scare you a little.</p><p style="color:var(--pink);margin-top:12px;">— The Pink Light Collective</p></div>`;
 }
 
 function openWin(type, customTitle, customContent, originEl) {
@@ -1506,8 +1906,147 @@ ctx.querySelectorAll('.ctx-i').forEach(i => i.addEventListener('click', () => {
   ctx.classList.remove('on');
 }));
 
-// icons
-document.querySelectorAll('.ico').forEach(i => i.addEventListener('click', () => { SFX.folderOpen(); openWin(i.dataset.w, null, null, i); }));
+// icons — draggable + click to open + burn on lamp drop
+document.querySelectorAll('.ico').forEach(ico => {
+  let isDrag = false, startX, startY, origLeft, origTop, hasMoved = false;
+
+  ico.addEventListener('mousedown', e => {
+    if (ico.classList.contains('burning') || ico.classList.contains('charred')) return;
+    e.preventDefault();
+    isDrag = true; hasMoved = false;
+    startX = e.clientX; startY = e.clientY;
+    origLeft = ico.offsetLeft; origTop = ico.offsetTop;
+    ico.classList.add('dragging');
+  });
+
+  document.addEventListener('mousemove', e => {
+    if (!isDrag) return;
+    const dx = e.clientX - startX, dy = e.clientY - startY;
+    if (Math.abs(dx) > 4 || Math.abs(dy) > 4) hasMoved = true;
+    if (hasMoved) {
+      ico.style.left = (origLeft + dx) + 'px';
+      ico.style.top = (origTop + dy) + 'px';
+      ico.style.right = 'auto';
+      ico.style.position = 'absolute';
+    }
+  });
+
+  document.addEventListener('mouseup', () => {
+    if (!isDrag) return;
+    isDrag = false;
+    ico.classList.remove('dragging');
+    if (!hasMoved) {
+      SFX.folderOpen(); openWin(ico.dataset.w, null, null, ico);
+      return;
+    }
+    // check if dropped near the lamp bulb
+    const bulb = document.querySelector('.lamp-bulb');
+    if (bulb) {
+      const br = bulb.getBoundingClientRect();
+      const ir = ico.getBoundingClientRect();
+      const bx = br.left + br.width / 2, by = br.top + br.height / 2;
+      const ix = ir.left + ir.width / 2, iy = ir.top + ir.height / 2;
+      if (Math.hypot(bx - ix, by - iy) < 80) {
+        burnFolder(ico, bx, by);
+      }
+    }
+  });
+});
+
+function burnFolder(ico, bx, by) {
+  ico.classList.add('burning');
+  flickLamp();
+  SFX.burnSizzle();
+
+  const desktop = document.getElementById('desktop');
+  const r = ico.getBoundingClientRect();
+  const cx = r.left + r.width / 2;
+  const cy = r.top + r.height / 2;
+
+  // huge flame burst — multiple layered circles
+  const flameColors = [
+    'radial-gradient(circle, rgba(255,255,200,0.9) 0%, rgba(255,160,50,0.7) 30%, rgba(232,74,175,0.4) 60%, transparent 80%)',
+    'radial-gradient(circle, rgba(255,220,100,0.8) 0%, rgba(255,100,50,0.6) 35%, rgba(200,50,50,0.3) 65%, transparent 85%)',
+    'radial-gradient(circle, rgba(255,143,218,0.7) 0%, rgba(232,74,175,0.5) 40%, transparent 75%)',
+  ];
+  flameColors.forEach((bg, i) => {
+    const flame = document.createElement('div');
+    flame.className = 'burn-flame';
+    const size = 100 + i * 40;
+    flame.style.width = size + 'px';
+    flame.style.height = size + 'px';
+    flame.style.left = (cx - size / 2) + 'px';
+    flame.style.top = (cy - size / 2) + 'px';
+    flame.style.background = bg;
+    flame.style.setProperty('--dur', (0.6 + i * 0.15) + 's');
+    desktop.appendChild(flame);
+    setTimeout(() => flame.remove(), 1200);
+  });
+
+  // tons of embers flying everywhere
+  for (let i = 0; i < 40; i++) {
+    const ember = document.createElement('div');
+    ember.className = 'burn-ember';
+    ember.style.left = cx + 'px';
+    ember.style.top = cy + 'px';
+    const colors = ['#ff6b35', '#ffb347', '#ff8fda', '#fff4e0', '#e84aaf', '#ff4444', '#ffff80', '#fff'];
+    ember.style.background = colors[Math.floor(Math.random() * colors.length)];
+    const size = 2 + Math.random() * 6;
+    ember.style.width = size + 'px';
+    ember.style.height = size + 'px';
+    // explode in all directions
+    const angle = Math.random() * Math.PI * 2;
+    const dist = 40 + Math.random() * 160;
+    const ex = Math.cos(angle) * dist;
+    const ey = Math.sin(angle) * dist - 60; // bias upward
+    ember.style.setProperty('--ex', ex + 'px');
+    ember.style.setProperty('--ey', ey + 'px');
+    ember.style.animation = `emberRise ${0.5 + Math.random() * 1}s ease-out ${Math.random() * 0.3}s forwards`;
+    ember.style.boxShadow = `0 0 ${3 + Math.random() * 6}px ${ember.style.background}`;
+    desktop.appendChild(ember);
+    setTimeout(() => ember.remove(), 2000);
+  }
+
+  // fully disappear, then respawn at random location
+  setTimeout(() => {
+    ico.classList.remove('burning');
+    ico.style.opacity = '0';
+    ico.style.visibility = 'hidden';
+    // reset all inline animation styles
+    ico.querySelector('.folder').style = '';
+    ico.querySelector('.ico-l').style = '';
+
+    // pick random new position (avoid other folders)
+    const vw = window.innerWidth, vh = window.innerHeight;
+    const others = [...document.querySelectorAll('.ico')].filter(i => i !== ico);
+    let nx, ny, attempts = 0;
+    do {
+      nx = 30 + Math.random() * (vw - 100);
+      ny = 120 + Math.random() * (vh - 220);
+      attempts++;
+    } while (
+      attempts < 40 &&
+      others.some(o => {
+        const or = o.getBoundingClientRect();
+        return Math.hypot(nx - (or.left + or.width/2), ny - (or.top + or.height/2)) < 90;
+      })
+    );
+
+    ico.style.left = nx + 'px';
+    ico.style.top = ny + 'px';
+    ico.style.right = 'auto';
+    ico.style.position = 'absolute';
+
+    // fade back in at new spot
+    setTimeout(() => {
+      ico.style.transition = 'opacity 0.6s ease, visibility 0.6s ease';
+      ico.style.opacity = '1';
+      ico.style.visibility = 'visible';
+      ico.style.animation = 'none';
+      setTimeout(() => { ico.style.transition = ''; ico.style.animation = ''; }, 700);
+    }, 800);
+  }, 1500);
+}
 
 // close menus
 document.addEventListener('click', e => {
@@ -1515,16 +2054,156 @@ document.addEventListener('click', e => {
   if(!e.target.closest('#ctx')) ctx.classList.remove('on');
 });
 
-// lamp flicker
+// lamp flicker + sparks
+let lampBroken = false;
+function spawnSparks() {
+  const lamp = document.getElementById('lamp');
+  // spawn 6-10 sparks near the bulb
+  const count = 6 + Math.floor(Math.random() * 5);
+  for (let i = 0; i < count; i++) {
+    const s = document.createElement('div');
+    s.className = 'spark';
+    // position near the bulb (around top:112px, center)
+    s.style.left = '50%';
+    s.style.top = '115px';
+    // random direction — mostly downward/outward
+    const angle = Math.random() * Math.PI * 1.2 - 0.1; // mostly downward arc
+    const dist = 15 + Math.random() * 40;
+    const dx = Math.cos(angle) * dist * (Math.random() > 0.5 ? 1 : -1);
+    const dy = Math.sin(angle) * dist + 10; // bias downward
+    s.style.setProperty('--dx', dx + 'px');
+    s.style.setProperty('--dy', dy + 'px');
+    s.style.setProperty('--dur', (0.25 + Math.random() * 0.35) + 's');
+    // stagger the sparks
+    const delay = Math.random() * 400;
+    s.style.width = (1.5 + Math.random() * 2.5) + 'px';
+    s.style.height = s.style.width;
+    lamp.appendChild(s);
+    setTimeout(() => s.classList.add('go'), delay);
+    setTimeout(() => s.remove(), delay + 600);
+  }
+}
 function flickLamp() {
   const lamp = document.getElementById('lamp');
-  if (lamp.classList.contains('flicker')) return;
+  if (lamp.classList.contains('flicker') || lampBroken) return;
   lamp.classList.add('flicker');
   SFX.flickerBuzz();
+  spawnSparks();
+  // spawn a second burst mid-flicker
+  setTimeout(() => spawnSparks(), 250);
   setTimeout(() => lamp.classList.remove('flicker'), 650);
 }
-document.getElementById('lamp-hit').addEventListener('click', flickLamp);
-setInterval(flickLamp, 15000);
+setInterval(() => { if (!lampBroken) flickLamp(); }, 15000);
+
+// rapid click detection — 5 clicks within 2 seconds breaks the lamp
+let lampClicks = [];
+document.getElementById('lamp-hit').addEventListener('click', () => {
+  if (lampBroken) return;
+  const now = Date.now();
+  lampClicks.push(now);
+  // keep only clicks within last 2 seconds
+  lampClicks = lampClicks.filter(t => now - t < 2000);
+  flickLamp();
+  if (lampClicks.length >= 5) {
+    lampClicks = [];
+    breakLamp();
+  }
+});
+
+function breakLamp() {
+  lampBroken = true;
+  const lamp = document.getElementById('lamp');
+  const blackout = document.getElementById('lamp-blackout');
+  const floorGlow = document.querySelector('.floor-glow');
+
+  // glass break sound
+  SFX.glassBreak();
+
+  // spawn glass shards from bulb position
+  const bulb = document.querySelector('.lamp-bulb');
+  const br = bulb.getBoundingClientRect();
+  const bx = br.left + br.width / 2, by = br.top + br.height / 2;
+  const desktop = document.getElementById('desktop');
+
+  for (let i = 0; i < 15; i++) {
+    const shard = document.createElement('div');
+    shard.className = 'lamp-shard';
+    // triangular glass shard via clip-path
+    const w = 4 + Math.random() * 10;
+    const h = 8 + Math.random() * 16;
+    shard.style.width = w + 'px';
+    shard.style.height = h + 'px';
+    shard.style.background = `linear-gradient(${Math.random()*360}deg, rgba(255,255,255,0.8), rgba(255,200,230,0.5))`;
+    shard.style.clipPath = `polygon(${Math.random()*40}% 0%, 100% ${30+Math.random()*40}%, ${Math.random()*40}% 100%)`;
+    shard.style.left = bx + 'px';
+    shard.style.top = by + 'px';
+    const sx = (Math.random() - 0.5) * 120;
+    const sy = 20 + Math.random() * 100;
+    const sr = (Math.random() - 0.5) * 720;
+    shard.style.setProperty('--sx', sx + 'px');
+    shard.style.setProperty('--sy', sy + 'px');
+    shard.style.setProperty('--sr', sr + 'deg');
+    shard.style.animation = `shardFall ${0.4 + Math.random() * 0.4}s ease-out forwards`;
+    desktop.appendChild(shard);
+    setTimeout(() => shard.remove(), 1000);
+  }
+
+  // kill the light — instant blackout
+  lamp.classList.add('lamp-dark');
+  floorGlow.classList.add('lamp-dark');
+  blackout.classList.add('on');
+
+  // hide the bulb glow
+  bulb.style.transition = 'none';
+  bulb.style.opacity = '0';
+  bulb.style.boxShadow = 'none';
+
+  // spawn extra eyes during blackout
+  const extraEyes = [];
+  for (let i = 0; i < 6; i++) {
+    setTimeout(() => {
+      if (!lampBroken) return;
+      spawnEyes();
+    }, 300 + i * 400);
+  }
+
+  // after 4 seconds — flicker back on inverted
+  setTimeout(() => {
+    document.documentElement.classList.add('inverted');
+    SFX.startCreepyLaugh();
+
+    // rapid eye spawning during invert
+    const eyeStorm = setInterval(() => spawnEyes(), 500);
+
+    // restore bulb
+    bulb.style.transition = 'opacity 0.8s ease';
+    bulb.style.opacity = '1';
+    bulb.style.boxShadow = '';
+
+    // flicker on
+    SFX.powerOn();
+    lamp.classList.add('flicker');
+    setTimeout(() => lamp.classList.remove('flicker'), 650);
+
+    // remove blackout, restore light
+    setTimeout(() => {
+      blackout.classList.remove('on');
+      lamp.classList.remove('lamp-dark');
+      floorGlow.classList.remove('lamp-dark');
+    }, 700);
+
+    // after 10 seconds, revert back to normal
+    setTimeout(() => {
+      SFX.stopCreepyLaugh();
+      clearInterval(eyeStorm);
+      document.documentElement.classList.remove('inverted');
+      SFX.flickerBuzz();
+      lamp.classList.add('flicker');
+      setTimeout(() => lamp.classList.remove('flicker'), 650);
+      lampBroken = false;
+    }, 10000);
+  }, 4000);
+}
 
 // sound toggle
 document.getElementById('sound-toggle').addEventListener('click', () => {
@@ -1573,6 +2252,9 @@ function closeTx() {
   const tx = document.getElementById('transmission');
   tx.classList.remove('on');
   tx.classList.add('out');
+  // this is the first user click — unlock audio
+  SFX.init();
+  SFX.startAmbient();
 }
 document.getElementById('tx-enter').addEventListener('click', closeTx);
 document.getElementById('tx-close').addEventListener('click', closeTx);
@@ -1879,6 +2561,24 @@ function spawnHand() {
     handBusy = false;
   }, 4800);
 }
+
+// ── Secret codes ──
+let keyBuffer = '';
+document.addEventListener('keydown', e => {
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+  keyBuffer += e.key.toLowerCase();
+  if (keyBuffer.length > 10) keyBuffer = keyBuffer.slice(-10);
+
+  // "pink" — open back room
+  if (keyBuffer.endsWith('pink')) {
+    keyBuffer = '';
+    if (wins['secret']) { focus('secret'); return; }
+    SFX.folderOpen();
+    flickLamp();
+    openWin('secret', '??? BACK ROOM ???', content('secret'));
+  }
+
+});
 
 // start hand spawning after boot, every 25s
 setTimeout(() => { spawnHand(); setInterval(spawnHand, 25000); }, 10000);
